@@ -1,6 +1,6 @@
 #include "DoomFire.h"
 
-const int window_height = 50;
+const int window_height = 460;
 const int window_width = 640;
 
 int main(int argc, char **argv) {
@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
 
 	while (doomFire.GetIsRunning()) {
 		doomFire.HandleEvents();
-		doomFire.UpdateFire();
+		//doomFire.UpdateFire();
 		doomFire.Render();
 	}
 

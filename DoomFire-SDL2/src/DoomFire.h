@@ -5,6 +5,7 @@
 #include <SDL.h>
 #include <math.h>
 #include <time.h>
+#include <vector>
 
 class DoomFire {
 private:
@@ -15,9 +16,7 @@ private:
 	bool isRunning;
 	
 	// **Temporary declarament
-	SDL_Texture* fireTexture;
-	Uint32 *fire_pixels;
-	Uint32* pixel_intesity;
+	std::vector<int> pixel_intesity;
 
 public:
 	DoomFire();

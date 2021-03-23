@@ -7,16 +7,16 @@ int fireColorsPalette[37][3] = {
     {199, 143, 23}, {199, 151, 31}, {191, 159, 31}, {191, 159, 31}, {191, 167, 39}, {191, 167, 39}, {191, 175, 47},
     {183, 175, 47}, {183, 183, 47}, {183, 183, 55}, {207, 207, 111}, {223, 223, 159}, {239, 239, 199}, {255, 255, 255} };
 
+const int size_fire = 4;
+
+
 DoomFire::DoomFire()
 {
     this->window = nullptr;
     this->render = nullptr;
     this->isRunning = false;
-    this->fireTexture = nullptr;
     this->win_width = 0;
     this->win_height = 0;
-    this->pixel_intesity = 0;
-    this->fire_pixels = 0;
 }
 
 DoomFire::~DoomFire()
@@ -90,71 +90,48 @@ void DoomFire::HandleEvents()
 
 void DoomFire::Destroy()
 {
-    delete[] fire_pixels;
-    delete[] pixel_intesity;
     SDL_DestroyWindow(this->window);
     SDL_DestroyRenderer(this->render);
-    SDL_DestroyTexture(this->fireTexture);
     SDL_Quit();
 }
 
-void DoomFire::UpdateFire()
-{
-    CalculateFirePropagation();
-    SDL_UpdateTexture(this->fireTexture, NULL, this->fire_pixels, this->win_width * sizeof(Uint32));
-}
 
 void DoomFire::Render()
 {
     SDL_RenderClear(this->render);
-    SDL_RenderCopy(this->render, this->fireTexture, NULL, NULL);
+    CalculateFirePropagation();
     SDL_RenderPresent(this->render);
 }
 
 void DoomFire::InitFirePixels()
 {
-    if (fireTexture == nullptr) {
-        this->fireTexture = SDL_CreateTexture(this->render,
-            SDL_PIXELFORMAT_ARGB8888,
-            SDL_TEXTUREACCESS_STATIC,
-            this->win_width,
-            this->win_height
-        );
+    int pixels_size = this->win_height * this->win_width;
+    for (int i = 0; i < pixels_size / size_fire * size_fire; i++) {
+        pixel_intesity.push_back(36);
     }
-
-    int pixels_alloc = sizeof(Uint32) * this->win_height * this->win_width;
-
-    this->fire_pixels = (Uint32*)malloc(pixels_alloc);
-    this->pixel_intesity = (Uint32*)malloc(pixels_alloc);
-
-    memset(this->fire_pixels, 0, pixels_alloc);
-    memset(this->pixel_intesity, 0, pixels_alloc);
-
-    CreateFireSource();
-}
-
-void DoomFire::CreateFireSource()
-{
-    for (int i = 0; i < this->win_width; i++) {
-        int indexPixel = this->win_width * this->win_height - this->win_width + i;        
-        this->pixel_intesity[indexPixel] = 36;
-    }
+    
 }
 
 void DoomFire::CalculateFirePropagation()
 {
-    for (int i = 0; i < this->win_width; i++) {
-        for (int j = 0; j < this->win_height; j++) {       
-            int pixelIndex = (this->win_width * j) + i;
+    for (int i = 0; i < this->win_width; i+= size_fire) {
+        for (int j = 0; j < this->win_height; j+= size_fire) {
+            
+            int pixelIndex = ((this->win_width / size_fire) * j) + i;
+            pixelIndex = pixelIndex / size_fire;
+            
             UpdateFireIntesityPerPixel(pixelIndex);            
             
             int indexIntensity = this->pixel_intesity[pixelIndex];
+            
             Uint8 r = fireColorsPalette[indexIntensity][0];
             Uint8 g = fireColorsPalette[indexIntensity][1];
             Uint8 b = fireColorsPalette[indexIntensity][2];
-            Uint32 fire_val = (0xff << 24) + (r << 16) + (g << 8) + b;      
+
+            SDL_Rect rectPixel = { i, j, i+ size_fire, j+ size_fire };
+            SDL_SetRenderDrawColor(this->render, r, g, b, 255);
+            SDL_RenderFillRect(this->render, &rectPixel);
             
-            this->fire_pixels[pixelIndex] = fire_val;
         }
     }
 
@@ -162,7 +139,7 @@ void DoomFire::CalculateFirePropagation()
 
 void DoomFire::UpdateFireIntesityPerPixel(int currentPixelIndex)
 {
-    int belowPixel = currentPixelIndex + this->win_width;
+    int belowPixel = currentPixelIndex + (this->win_width/ size_fire);
 
     if (belowPixel > (this->win_height * this->win_width)) {
         return;
@@ -171,6 +148,6 @@ void DoomFire::UpdateFireIntesityPerPixel(int currentPixelIndex)
     int decay = floor(rand() % 3);
     int belowPixelIntensity = this->pixel_intesity[belowPixel];
     Uint32 newFireIntensity = (belowPixelIntensity - decay <= 0) ? 0 : belowPixelIntensity - decay;
-    this->pixel_intesity[currentPixelIndex] = newFireIntensity;
+    this->pixel_intesity[(currentPixelIndex - decay < 0) ? 0 : currentPixelIndex - decay] = newFireIntensity;
 }
 
